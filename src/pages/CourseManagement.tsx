@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Edit, Save, X, BookOpen, Video, ListOrdered, UserCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { quillModules, quillFormats } from '../lib/quillConfig';
 
 export default function CourseManagement() {

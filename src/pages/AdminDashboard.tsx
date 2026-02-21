@@ -3,8 +3,8 @@ import { supabase } from '../lib/supabase';
 import { motion } from 'motion/react';
 import { Plus, Trash2, Edit, Save, X, Image as ImageIcon, Users, Ticket, Save as SaveIcon, Calendar, MessageSquare, Globe, Mail as MailIcon, MapPin, MessageCircle, ShieldCheck } from 'lucide-react';
 import { cn, isSubscriptionActive, formatDate } from '../lib/utils';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { quillModules, quillFormats } from '../lib/quillConfig';
 
 export default function AdminDashboard() {
