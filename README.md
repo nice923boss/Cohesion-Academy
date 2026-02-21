@@ -1,20 +1,33 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 凝聚力學院 Cohesion Academy
 
-# Run and deploy your AI Studio app
+線上課程學習平台，提供專業課程瀏覽、觀看與管理功能。
 
-This contains everything you need to run your app locally.
+## 技術棧
 
-View your app in AI Studio: https://ai.studio/apps/d233c9af-c07b-44c5-b9fb-2b5f9b282a17
+- React 19 + TypeScript
+- Vite
+- Tailwind CSS 4
+- Supabase (資料庫 & 驗證)
+- React Router v7
 
-## Run Locally
+## 本地開發
 
-**Prerequisites:**  Node.js
+**前置需求：** Node.js
 
+1. 安裝依賴：
+   ```bash
+   npm install
+   ```
+2. 在專案根目錄建立 `.env` 檔案，填入 Supabase 設定：
+   ```
+   VITE_SUPABASE_URL="https://your-project.supabase.co"
+   VITE_SUPABASE_ANON_KEY="your-anon-key"
+   ```
+3. 啟動開發伺服器：
+   ```bash
+   npm run dev
+   ```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 部署
+
+本專案使用 GitHub Pages 部署，推送至 `main` 分支後會自動透過 GitHub Actions 建置並部署。
