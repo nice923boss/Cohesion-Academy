@@ -5,7 +5,7 @@ import { Plus, Trash2, Edit, Save, X, Image as ImageIcon, Users, Ticket, Calenda
 import { cn, formatDate } from '../lib/utils';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { quillModules, quillFormats } from '../lib/quillConfig';
+import { quillModules, quillFormats, blockBase64Images } from '../lib/quillConfig';
 
 export default function AdminDashboard() {
   const [events, setEvents] = useState<any[]>([]);
@@ -616,7 +616,7 @@ export default function AdminDashboard() {
                 <div className="space-y-2">
                   <label className="text-[10px] text-white/40 uppercase tracking-widest ml-1">頁面內容（富文本）</label>
                   <div className="quill-dark">
-                    <ReactQuill theme="snow" value={siteSettings.about?.body || ''} onChange={val => setSiteSettings({...siteSettings, about: {...siteSettings.about, body: val}})}
+                    <ReactQuill ref={(el: any) => { if (el) blockBase64Images(el); }} theme="snow" value={siteSettings.about?.body || ''} onChange={val => setSiteSettings({...siteSettings, about: {...siteSettings.about, body: val}})}
                       modules={quillModules} formats={quillFormats} placeholder="撰寫學院的願景與介紹..." />
                   </div>
                 </div>
@@ -662,7 +662,7 @@ export default function AdminDashboard() {
                     <input type="text" value={section.title || ''} onChange={e => { const s = [...siteSettings.terms.sections]; s[idx].title = e.target.value; setSiteSettings({...siteSettings, terms: {...siteSettings.terms, sections: s}}); }}
                       className="w-full bg-transparent border-b border-white/10 p-2 focus:border-gold outline-none font-bold text-lg" placeholder="章節標題" />
                     <div className="quill-dark">
-                      <ReactQuill theme="snow" value={section.content || ''} onChange={val => { const s = [...siteSettings.terms.sections]; s[idx].content = val; setSiteSettings({...siteSettings, terms: {...siteSettings.terms, sections: s}}); }}
+                      <ReactQuill ref={(el: any) => { if (el) blockBase64Images(el); }} theme="snow" value={section.content || ''} onChange={val => { const s = [...siteSettings.terms.sections]; s[idx].content = val; setSiteSettings({...siteSettings, terms: {...siteSettings.terms, sections: s}}); }}
                         modules={quillModules} formats={quillFormats} placeholder="撰寫條款內容..." />
                     </div>
                   </div>
@@ -724,7 +724,7 @@ export default function AdminDashboard() {
               <div>
                 <label className="text-xs text-white/40 uppercase tracking-widest mb-2 block">文章內容</label>
                 <div className="quill-dark">
-                  <ReactQuill theme="snow" value={newArticle.content} onChange={val => setNewArticle({...newArticle, content: val})} modules={quillModules} formats={quillFormats} placeholder="撰寫文章內容..." />
+                  <ReactQuill ref={(el: any) => { if (el) blockBase64Images(el); }} theme="snow" value={newArticle.content} onChange={val => setNewArticle({...newArticle, content: val})} modules={quillModules} formats={quillFormats} placeholder="撰寫文章內容..." />
                 </div>
               </div>
               <div className="flex items-center space-x-3 p-4 bg-white/5 rounded-2xl border border-white/5">

@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { quillModules, quillFormats } from '../lib/quillConfig';
+import { quillModules, quillFormats, blockBase64Images } from '../lib/quillConfig';
 
 export default function CourseManagement() {
   const { profile } = useAuth();
@@ -260,7 +260,7 @@ export default function CourseManagement() {
               <div>
                 <label className="text-xs text-white/40 uppercase tracking-widest mb-2 block">個人簡介</label>
                 <div className="quill-dark">
-                  <ReactQuill theme="snow" value={instructorProfile.bio} onChange={val => setInstructorProfile({...instructorProfile, bio: val})} modules={quillModules} formats={quillFormats} placeholder="介紹一下您自己..." />
+                  <ReactQuill ref={(el: any) => { if (el) blockBase64Images(el); }} theme="snow" value={instructorProfile.bio} onChange={val => setInstructorProfile({...instructorProfile, bio: val})} modules={quillModules} formats={quillFormats} placeholder="介紹一下您自己..." />
                 </div>
               </div>
               <button onClick={handleUpdateProfile} disabled={savingProfile}
@@ -289,7 +289,7 @@ export default function CourseManagement() {
               <div>
                 <label className="text-xs text-white/40 uppercase tracking-widest mb-2 block">課程介紹</label>
                 <div className="quill-dark">
-                  <ReactQuill theme="snow" value={newCourse.description} onChange={val => setNewCourse({...newCourse, description: val})} modules={quillModules} formats={quillFormats} placeholder="課程詳細介紹..." />
+                  <ReactQuill ref={(el: any) => { if (el) blockBase64Images(el); }} theme="snow" value={newCourse.description} onChange={val => setNewCourse({...newCourse, description: val})} modules={quillModules} formats={quillFormats} placeholder="課程詳細介紹..." />
                 </div>
               </div>
               <div>
