@@ -199,7 +199,7 @@ export default function CoursePlayer() {
             <div className="glass rounded-3xl p-8">
               <h3 className="text-xl font-bold mb-4">課程簡介</h3>
               <div
-                className="text-white/60 leading-relaxed prose prose-invert max-w-none"
+                className="rich-content text-white/60 leading-relaxed prose prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: course.description }}
               />
             </div>

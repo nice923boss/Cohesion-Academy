@@ -179,7 +179,7 @@ export default function InstructorProfile() {
             <section className="glass rounded-[3rem] p-12">
               <h2 className="text-2xl font-bold mb-8 gold-gradient">關於導師</h2>
               <div
-                className="text-white/60 leading-relaxed prose prose-invert max-w-none"
+                className="rich-content text-white/60 leading-relaxed prose prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: instructor.bio || '這位導師很低調，尚未填寫個人簡介。' }}
               />
             </section>

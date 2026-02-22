@@ -35,7 +35,7 @@ export default function About() {
           <h1 className="text-4xl md:text-5xl font-bold mb-8 gold-gradient">{content.title}</h1>
           {content.body_html ? (
             <div
-              className="space-y-6 text-white/70 leading-relaxed text-lg prose prose-invert max-w-none"
+              className="rich-content text-white/70 leading-relaxed text-lg prose prose-invert max-w-none"
               dangerouslySetInnerHTML={{ __html: content.body_html }}
             />
           ) : (

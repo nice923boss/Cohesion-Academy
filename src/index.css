@@ -131,3 +131,33 @@
 .quill-dark .ql-snow .ql-picker.ql-header .ql-picker-options .ql-picker-item:hover::before {
   color: #D4AF37 !important;
 }
+
+/* ========================================
+   富文本渲染：保留空行間距
+   Quill 編輯器產生的空行為 <p><br></p>，
+   需確保渲染時不被壓縮。
+   ======================================== */
+.rich-content p {
+  min-height: 1.5em;
+  margin-bottom: 0.25em;
+}
+
+.rich-content p:empty,
+.rich-content p br:only-child {
+  min-height: 1.5em;
+}
+
+.rich-content h1, .rich-content h2, .rich-content h3 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.rich-content ul, .rich-content ol {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding-left: 1.5em;
+}
+
+.rich-content li {
+  margin-bottom: 0.25em;
+}

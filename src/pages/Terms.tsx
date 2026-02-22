@@ -28,7 +28,7 @@ export default function Terms() {
               <section key={idx}>
                 <h2 className="text-white text-lg font-bold mb-4">{section.title}</h2>
                 <div
-                  className="prose prose-invert prose-sm max-w-none"
+                  className="rich-content prose prose-invert prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ __html: section.content }}
                 />
               </section>

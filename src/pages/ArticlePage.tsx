@@ -70,7 +70,7 @@ export default function ArticlePage() {
             <div className="border-t border-white/5" />
 
             <div
-              className="prose prose-invert prose-lg max-w-none text-white/70 leading-relaxed
+              className="rich-content prose prose-invert prose-lg max-w-none text-white/70 leading-relaxed
                 prose-headings:text-white prose-headings:font-bold
                 prose-strong:text-white
                 prose-a:text-gold prose-a:no-underline hover:prose-a:underline
