@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Edit, Save, X, Image as ImageIcon, Users, Ticket, Calendar, MessageSquare, Globe, Mail as MailIcon, MapPin, MessageCircle, ShieldCheck, FileText, ExternalLink, EyeOff, KeyRound, Search, ChevronDown, ChevronUp, Megaphone } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, Image as ImageIcon, Users, Ticket, Calendar, MessageSquare, Globe, Mail as MailIcon, MapPin, MessageCircle, ShieldCheck, FileText, ExternalLink, EyeOff, KeyRound, Search, ChevronDown, ChevronUp, Megaphone, CheckCircle, XCircle, UserCheck } from 'lucide-react';
 import { cn, formatDate } from '../lib/utils';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -29,6 +29,11 @@ export default function AdminDashboard() {
   const [memberSearch, setMemberSearch] = useState('');
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const [memberHiddenList, setMemberHiddenList] = useState<any[]>([]);
+
+  // Email verification status
+  const [verificationStatus, setVerificationStatus] = useState<Record<string, string | null>>({});
+  const [verifyingUserId, setVerifyingUserId] = useState<string | null>(null);
+  const [batchVerifying, setBatchVerifying] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -64,6 +69,8 @@ export default function AdminDashboard() {
           }
         });
       }
+      // Fetch email verification status from auth.users
+      await fetchVerificationStatus();
     } catch (err) {
       console.error('Error fetching admin data:', err);
     } finally {
@@ -128,6 +135,43 @@ export default function AdminDashboard() {
     const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) alert('發送失敗：' + error.message);
     else alert(`密碼重設信已發送至 ${email}`);
+  }
+
+  // Email verification handlers
+  async function fetchVerificationStatus() {
+    const { data, error } = await supabase.rpc('admin_get_users_verification_status');
+    if (error) { console.error('Error fetching verification status:', error); return; }
+    if (data) {
+      const statusMap: Record<string, string | null> = {};
+      data.forEach((row: { user_id: string; email_confirmed_at: string | null }) => {
+        statusMap[row.user_id] = row.email_confirmed_at;
+      });
+      setVerificationStatus(statusMap);
+    }
+  }
+
+  async function handleVerifyUser(userId: string, userName: string) {
+    if (!confirm(`確定要代替 ${userName} 完成 Email 驗證嗎？`)) return;
+    setVerifyingUserId(userId);
+    try {
+      const { error } = await supabase.rpc('admin_verify_user', { target_user_id: userId });
+      if (error) { alert('驗證失敗：' + error.message); }
+      else { alert(`${userName} 已成功驗證！`); await fetchVerificationStatus(); }
+    } catch (err: any) { alert('驗證失敗：' + err.message); }
+    finally { setVerifyingUserId(null); }
+  }
+
+  async function handleBatchVerifyUsers() {
+    const unverifiedCount = Object.values(verificationStatus).filter(v => v === null).length;
+    if (unverifiedCount === 0) { alert('目前沒有未驗證的會員'); return; }
+    if (!confirm(`確定要批次驗證所有 ${unverifiedCount} 位未驗證會員嗎？`)) return;
+    setBatchVerifying(true);
+    try {
+      const { data, error } = await supabase.rpc('admin_batch_verify_users');
+      if (error) { alert('批次驗證失敗：' + error.message); }
+      else { alert(`批次驗證完成！共驗證 ${data} 位會員`); await fetchVerificationStatus(); }
+    } catch (err: any) { alert('批次驗證失敗：' + err.message); }
+    finally { setBatchVerifying(false); }
   }
 
   // Code handlers
@@ -196,6 +240,9 @@ export default function AdminDashboard() {
     const q = memberSearch.toLowerCase();
     return (u.full_name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
   });
+
+  // Count unverified members
+  const unverifiedCount = Object.values(verificationStatus).filter(v => v === null).length;
 
   if (loading) return <div className="pt-32 text-center text-white/40">載入中...</div>;
 
@@ -306,8 +353,27 @@ export default function AdminDashboard() {
       {activeTab === 'members' && (
         <div className="space-y-8">
           <section className="glass rounded-3xl p-8 space-y-6">
-            <h2 className="text-xl font-bold flex items-center space-x-2"><Users className="w-5 h-5 text-gold" /><span>會員資料查詢</span></h2>
-            <p className="text-white/40 text-sm">共 {users.length} 位會員 — 可搜尋姓名或 Email，點擊展開查看該會員隱藏的講師列表</p>
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-xl font-bold flex items-center space-x-2"><Users className="w-5 h-5 text-gold" /><span>會員資料查詢</span></h2>
+                <p className="text-white/40 text-sm mt-1">
+                  共 {users.length} 位會員 — 可搜尋姓名或 Email，點擊展開查看該會員隱藏的講師列表
+                  {unverifiedCount > 0 && (
+                    <span className="text-orange-400 ml-2">（{unverifiedCount} 位未驗證）</span>
+                  )}
+                </p>
+              </div>
+              {unverifiedCount > 0 && (
+                <button
+                  onClick={handleBatchVerifyUsers}
+                  disabled={batchVerifying}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all text-sm font-bold disabled:opacity-50 flex-shrink-0"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>{batchVerifying ? '驗證中...' : '批次驗證全部'}</span>
+                </button>
+              )}
+            </div>
 
             {/* Search */}
             <div className="relative w-full max-w-md">
@@ -327,6 +393,7 @@ export default function AdminDashboard() {
                   <th className="pb-4 font-medium">姓名</th>
                   <th className="pb-4 font-medium">Email</th>
                   <th className="pb-4 font-medium">角色</th>
+                  <th className="pb-4 font-medium">驗證狀態</th>
                   <th className="pb-4 font-medium">註冊日期</th>
                   <th className="pb-4 font-medium text-right">操作</th>
                 </tr></thead>
@@ -343,6 +410,23 @@ export default function AdminDashboard() {
                             {u.role === 'admin' ? '管理員' : u.role === 'instructor' ? '講師' : '學員'}
                           </span>
                         </td>
+                        <td className="py-4">
+                          {verificationStatus[u.id] !== undefined ? (
+                            verificationStatus[u.id] ? (
+                              <span className="flex items-center space-x-1 text-green-400">
+                                <CheckCircle className="w-4 h-4" />
+                                <span className="text-xs">已驗證</span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center space-x-1 text-orange-400">
+                                <XCircle className="w-4 h-4" />
+                                <span className="text-xs">未驗證</span>
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-xs text-white/20">—</span>
+                          )}
+                        </td>
                         <td className="py-4 text-white/40">{formatDate(u.created_at)}</td>
                         <td className="py-4 text-right">
                           <div className="flex items-center justify-end space-x-2">
@@ -351,6 +435,20 @@ export default function AdminDashboard() {
                               title="查看隱藏講師">
                               <EyeOff className="w-4 h-4" />
                             </button>
+                            {verificationStatus[u.id] === null && (
+                              <button
+                                onClick={() => handleVerifyUser(u.id, u.full_name)}
+                                disabled={verifyingUserId === u.id}
+                                className="p-2 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all disabled:opacity-50"
+                                title="代驗證 Email"
+                              >
+                                {verifyingUserId === u.id ? (
+                                  <span className="w-4 h-4 block animate-spin rounded-full border-2 border-green-400 border-t-transparent" />
+                                ) : (
+                                  <ShieldCheck className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
                             <button onClick={() => handleSendPasswordReset(u.email, u.full_name)}
                               className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gold transition-all" title="發送密碼重設信">
                               <KeyRound className="w-4 h-4" />
@@ -361,7 +459,7 @@ export default function AdminDashboard() {
                       {/* Expanded hidden instructor list for this member */}
                       {expandedMemberId === u.id && (
                         <tr>
-                          <td colSpan={5} className="pb-4">
+                          <td colSpan={6} className="pb-4">
                             <div className="ml-4 p-4 bg-orange-500/5 border border-orange-500/10 rounded-2xl">
                               <h4 className="text-sm font-bold text-orange-400 mb-3 flex items-center space-x-2">
                                 <EyeOff className="w-4 h-4" />
