@@ -14,7 +14,16 @@ export default function HeroSlider() {
         .select('*')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
-      if (data) setEvents(data);
+
+      if (data) {
+        const now = new Date();
+        const filtered = data.filter(event => {
+          if (event.start_date && new Date(event.start_date) > now) return false;
+          if (event.end_date && new Date(event.end_date) < now) return false;
+          return true;
+        });
+        setEvents(filtered);
+      }
     }
     fetchEvents();
   }, []);

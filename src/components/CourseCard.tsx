@@ -22,16 +22,13 @@ export default function CourseCard({ course }: CourseCardProps) {
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           referrerPolicy="no-referrer"
         />
-        <div className="absolute top-4 left-4 flex flex-col gap-2">
+        <div className="absolute top-4 left-4">
           <span className="px-3 py-1 glass rounded-full text-[10px] font-bold text-gold uppercase tracking-widest">
             {course.category}
           </span>
-          <span className={`px-3 py-1 glass rounded-full text-[10px] font-bold uppercase tracking-widest ${course.is_free ? 'text-green-400' : 'text-gold'}`}>
-            {course.is_free ? '免費' : '付費'}
-          </span>
         </div>
       </Link>
-      
+
       <div className="p-6 flex flex-col flex-grow">
         <Link to={`/course/${course.id}`}>
           <h3 className="text-xl font-bold mb-3 group-hover:text-gold transition-colors line-clamp-1">
@@ -39,9 +36,9 @@ export default function CourseCard({ course }: CourseCardProps) {
           </h3>
         </Link>
         <p className="text-white/60 text-sm mb-6 line-clamp-2 flex-grow">
-          {course.description}
+          {course.description?.replace(/<[^>]*>/g, '') || ''}
         </p>
-        
+
         <div className="flex items-center justify-between pt-4 border-t border-white/5">
           <div className="flex items-center space-x-2 text-white/40 text-xs">
             <User className="w-3 h-3" />

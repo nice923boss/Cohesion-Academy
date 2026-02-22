@@ -2,10 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase, Course, Unit, QuizQuestion } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { isSubscriptionActive } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { Play, CheckCircle, Lock, ChevronRight, Trophy, ExternalLink, Heart } from 'lucide-react';
+import { Play, CheckCircle, Lock, Trophy, ExternalLink, Heart, EyeOff } from 'lucide-react';
 
 export default function CoursePlayer() {
   const { id } = useParams<{ id: string }>();
@@ -17,41 +16,36 @@ export default function CoursePlayer() {
   const [quizScore, setQuizScore] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [membershipSteps, setMembershipSteps] = useState<any>(null);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [instructorDonateUrl, setInstructorDonateUrl] = useState<string | null>(null);
+  const [instructorDonateEmbed, setInstructorDonateEmbed] = useState<string | null>(null);
+  const [isInstructorHidden, setIsInstructorHidden] = useState(false);
 
-  const isActive = course?.is_free || isSubscriptionActive(profile?.subscription_end || null) || profile?.role === 'admin';
-
-  useEffect(() => {
-    async function fetchSettings() {
-      const { data } = await supabase
-        .from('site_settings')
-        .select('*')
-        .eq('key', 'membership_steps')
-        .single();
-      
-      if (data) {
-        setMembershipSteps(data.content);
-      }
-    }
-    fetchSettings();
-  }, []);
+  const isLoggedIn = !!user;
 
   useEffect(() => {
     async function fetchCourseData() {
       const { data: courseData } = await supabase
         .from('courses')
-        .select('*, instructor:profiles(full_name)')
+        .select('*, instructor:profiles(full_name, donate_url, donate_embed)')
         .eq('id', id)
         .single();
-      
+
       const { data: unitsData } = await supabase
         .from('units')
         .select('*')
         .eq('course_id', id)
         .order('order_index', { ascending: true });
 
-      if (courseData) setCourse(courseData);
+      if (courseData) {
+        setCourse(courseData);
+        if (courseData.instructor?.donate_url) {
+          setInstructorDonateUrl(courseData.instructor.donate_url);
+        }
+        if (courseData.instructor?.donate_embed) {
+          setInstructorDonateEmbed(courseData.instructor.donate_embed);
+        }
+      }
       if (unitsData) {
         setUnits(unitsData);
         setCurrentUnit(unitsData[0]);
@@ -63,15 +57,14 @@ export default function CoursePlayer() {
         await supabase.from('courses').update({ views: courseData.views + 1 }).eq('id', id);
       }
 
-      // Check if favorited
-      if (user) {
-        const { data: fav } = await supabase
-          .from('user_favorites')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('course_id', id)
-          .single();
-        setIsFavorited(!!fav);
+      // Check if favorited & if instructor is hidden
+      if (user && courseData) {
+        const [favRes, hiddenRes] = await Promise.all([
+          supabase.from('user_favorites').select('*').eq('user_id', user.id).eq('course_id', id).single(),
+          supabase.from('hidden_instructors').select('*').eq('user_id', user.id).eq('instructor_id', courseData.instructor_id).single()
+        ]);
+        setIsFavorited(!!favRes.data);
+        setIsInstructorHidden(!!hiddenRes.data);
       }
     }
     fetchCourseData();
@@ -79,29 +72,34 @@ export default function CoursePlayer() {
 
   const toggleFavorite = async () => {
     if (!user) return alert('請先登入會員');
-    
     if (isFavorited) {
       await supabase.from('user_favorites').delete().eq('user_id', user.id).eq('course_id', id);
       setIsFavorited(false);
     } else {
       const { error } = await supabase.from('user_favorites').insert([{ user_id: user.id, course_id: id }]);
-      if (error) {
-        alert('收藏失敗，請確認資料庫是否有 user_favorites 表。');
-      } else {
-        setIsFavorited(true);
-      }
+      if (!error) setIsFavorited(true);
+    }
+  };
+
+  const toggleHideInstructor = async () => {
+    if (!user || !course) return alert('請先登入會員');
+    if (isInstructorHidden) {
+      await supabase.from('hidden_instructors').delete().eq('user_id', user.id).eq('instructor_id', course.instructor_id);
+      setIsInstructorHidden(false);
+    } else {
+      if (!confirm('確定要隱藏這位講師嗎？隱藏後您將不會在瀏覽頁面看到這位講師的課程。您可以在個人中心解除隱藏。')) return;
+      const { error } = await supabase.from('hidden_instructors').insert([{ user_id: user.id, instructor_id: course.instructor_id }]);
+      if (!error) setIsInstructorHidden(true);
     }
   };
 
   const handleQuizSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUnit?.quiz_data) return;
-
     let score = 0;
     currentUnit.quiz_data.forEach((q, idx) => {
       if (quizAnswers[idx] === q.answer) score++;
     });
-
     setSubmitted(true);
     setQuizScore(Math.round((score / currentUnit.quiz_data.length) * 100));
   };
@@ -115,7 +113,7 @@ export default function CoursePlayer() {
         {/* Main Player Area */}
         <div className="lg:col-span-3 p-4 md:p-8">
           <div className="aspect-video w-full glass rounded-3xl overflow-hidden relative">
-            {isActive ? (
+            {isLoggedIn ? (
               currentUnit?.youtube_id ? (
                 <iframe
                   src={`https://www.youtube.com/embed/${currentUnit.youtube_id}?rel=0&modestbranding=1`}
@@ -129,41 +127,18 @@ export default function CoursePlayer() {
                 </div>
               )
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-black/80 p-8 text-center overflow-y-auto">
+              <div className="w-full h-full flex flex-col items-center justify-center bg-black/80 p-8 text-center">
                 <Lock className="w-12 h-12 text-gold mb-4" />
-                <h3 className="text-xl font-bold mb-2">{membershipSteps?.title || '此內容僅限會員觀看'}</h3>
+                <h3 className="text-xl font-bold mb-2">請先登入以觀看課程</h3>
                 <p className="text-white/60 mb-6 max-w-md text-sm">
-                  {membershipSteps?.subtitle || '您需要開通年費會員權限才能觀看此課程的完整影片與測驗。'}
+                  凝聚力學院所有課程皆為免費，登入會員即可觀看完整內容。
                 </p>
-                
-                {membershipSteps?.steps && (
-                  <ul className="text-left text-xs text-white/40 space-y-2 mb-8 max-w-xs mx-auto">
-                    {membershipSteps.steps.map((step: string, idx: number) => (
-                      <li key={idx} className="flex items-start space-x-2">
-                        <span className="text-gold font-bold">•</span>
-                        <span>{step}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Link
-                    to="/dashboard"
-                    className="px-8 py-3 rounded-full border border-white/20 text-white font-bold text-sm hover:bg-white/5 transition-all"
-                  >
-                    前往個人中心
-                  </Link>
-                  <a
-                    href={membershipSteps?.line_url || "https://line.me/ti/p/3YAya5KQYr"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-8 py-3 rounded-full bg-[#06C755] text-white font-bold text-sm hover:scale-105 transition-transform flex items-center space-x-2"
-                  >
-                    <span>{membershipSteps?.button_text || '立即聯繫管理員'}</span>
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
+                <Link
+                  to="/login"
+                  className="px-8 py-3 rounded-full gold-bg-gradient text-navy-dark font-bold text-sm hover:scale-105 transition-transform"
+                >
+                  立即登入 / 註冊
+                </Link>
               </div>
             )}
           </div>
@@ -171,15 +146,47 @@ export default function CoursePlayer() {
           <div className="mt-8">
             <div className="flex justify-between items-start mb-4">
               <h1 className="text-3xl font-bold">{currentUnit?.title || course.title}</h1>
-              <button 
-                onClick={toggleFavorite}
-                className={cn(
-                  "p-3 rounded-2xl transition-all border",
-                  isFavorited ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-white/5 border-white/10 text-white/40 hover:text-gold"
+              <div className="flex items-center space-x-3">
+                {/* Donate Button */}
+                {instructorDonateUrl && (
+                  <a
+                    href={instructorDonateUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 px-5 py-3 rounded-2xl bg-gold/10 border border-gold/20 text-gold hover:bg-gold hover:text-navy-dark transition-all text-sm font-bold"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>贊助講師</span>
+                  </a>
                 )}
-              >
-                <Heart className={cn("w-6 h-6", isFavorited && "fill-current")} />
-              </button>
+                {/* Donate Embed Button */}
+                {instructorDonateEmbed && (
+                  <div dangerouslySetInnerHTML={{ __html: instructorDonateEmbed }} />
+                )}
+                {/* Hide Instructor */}
+                {user && (
+                  <button
+                    onClick={toggleHideInstructor}
+                    className={cn(
+                      "p-3 rounded-2xl transition-all border",
+                      isInstructorHidden ? "bg-orange-500/10 border-orange-500/20 text-orange-400" : "bg-white/5 border-white/10 text-white/40 hover:text-orange-400"
+                    )}
+                    title={isInstructorHidden ? '解除隱藏此講師' : '隱藏此講師'}
+                  >
+                    <EyeOff className="w-5 h-5" />
+                  </button>
+                )}
+                {/* Favorite */}
+                <button
+                  onClick={toggleFavorite}
+                  className={cn(
+                    "p-3 rounded-2xl transition-all border",
+                    isFavorited ? "bg-red-500/10 border-red-500/20 text-red-500" : "bg-white/5 border-white/10 text-white/40 hover:text-gold"
+                  )}
+                >
+                  <Heart className={cn("w-6 h-6", isFavorited && "fill-current")} />
+                </button>
+              </div>
             </div>
             <div className="flex items-center space-x-4 text-white/40 text-sm mb-8">
               <Link to={`/instructor/${course.instructor_id}`} className="hover:text-gold transition-colors">
@@ -188,56 +195,45 @@ export default function CoursePlayer() {
               <span>•</span>
               <span>{course.category}</span>
             </div>
-            
+
             <div className="glass rounded-3xl p-8">
               <h3 className="text-xl font-bold mb-4">課程簡介</h3>
-              <div 
+              <div
                 className="text-white/60 leading-relaxed prose prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: course.description }}
               />
             </div>
 
             {/* Quiz System */}
-            {isActive && currentUnit?.quiz_data && currentUnit.quiz_data.length > 0 && (
+            {isLoggedIn && currentUnit?.quiz_data && currentUnit.quiz_data.length > 0 && (
               <div className="mt-12 glass rounded-3xl p-8 md:p-12">
                 <div className="flex items-center space-x-2 mb-8">
                   <CheckCircle className="w-6 h-6 text-gold" />
                   <h2 className="text-2xl font-bold">單元測驗</h2>
                 </div>
-
                 <form onSubmit={handleQuizSubmit} className="space-y-12">
                   {currentUnit.quiz_data.map((q, qIdx) => (
                     <div key={qIdx} className="space-y-6">
-                      <p className="text-lg font-medium">
-                        {qIdx + 1}. {q.question}
-                      </p>
+                      <p className="text-lg font-medium">{qIdx + 1}. {q.question}</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {q.options.map((opt, oIdx) => (
                           <label
                             key={oIdx}
                             className={cn(
                               "flex items-center p-4 rounded-xl border transition-all relative",
-                              submitted 
-                                ? oIdx === q.answer 
-                                  ? "border-green-500 bg-green-500/10 text-green-400" 
-                                  : quizAnswers[qIdx] === oIdx 
-                                    ? "border-red-500 bg-red-500/10 text-red-400" 
+                              submitted
+                                ? oIdx === q.answer
+                                  ? "border-green-500 bg-green-500/10 text-green-400"
+                                  : quizAnswers[qIdx] === oIdx
+                                    ? "border-red-500 bg-red-500/10 text-red-400"
                                     : "border-white/5 opacity-50"
                                 : quizAnswers[qIdx] === oIdx
                                   ? "border-gold bg-gold/10 text-gold"
                                   : "border-white/10 bg-white/5 hover:border-white/30 cursor-pointer"
                             )}
                           >
-                            <input
-                              type="radio"
-                              name={`q-${qIdx}`}
-                              className="hidden"
-                              disabled={submitted}
-                              onChange={() => {
-                                const newAnswers = [...quizAnswers];
-                                newAnswers[qIdx] = oIdx;
-                                setQuizAnswers(newAnswers);
-                              }}
+                            <input type="radio" name={`q-${qIdx}`} className="hidden" disabled={submitted}
+                              onChange={() => { const a = [...quizAnswers]; a[qIdx] = oIdx; setQuizAnswers(a); }}
                             />
                             <span>{opt}</span>
                             {submitted && oIdx === q.answer && (
@@ -248,22 +244,13 @@ export default function CoursePlayer() {
                       </div>
                     </div>
                   ))}
-
                   <div className="pt-8 flex items-center justify-between">
-                    <button
-                      type="submit"
-                      className="px-12 py-4 rounded-xl gold-bg-gradient text-navy-dark font-bold text-lg hover:scale-105 transition-transform"
-                    >
+                    <button type="submit" className="px-12 py-4 rounded-xl gold-bg-gradient text-navy-dark font-bold text-lg hover:scale-105 transition-transform">
                       送出答案
                     </button>
-
                     <AnimatePresence>
                       {quizScore !== null && (
-                        <motion.div
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="flex items-center space-x-4"
-                        >
+                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center space-x-4">
                           <Trophy className="w-8 h-8 text-gold" />
                           <div>
                             <p className="text-sm text-white/40">您的得分</p>
@@ -289,17 +276,10 @@ export default function CoursePlayer() {
             {units.map((unit, idx) => (
               <button
                 key={unit.id}
-                onClick={() => {
-                  setCurrentUnit(unit);
-                  setQuizScore(null);
-                  setSubmitted(false);
-                  setQuizAnswers([]);
-                }}
+                onClick={() => { setCurrentUnit(unit); setQuizScore(null); setSubmitted(false); setQuizAnswers([]); }}
                 className={cn(
                   "w-full text-left p-4 rounded-2xl transition-all group relative overflow-hidden",
-                  currentUnit?.id === unit.id
-                    ? "glass border-gold/50 text-gold"
-                    : "hover:bg-white/5 text-white/60"
+                  currentUnit?.id === unit.id ? "glass border-gold/50 text-gold" : "hover:bg-white/5 text-white/60"
                 )}
               >
                 <div className="flex items-center space-x-4">
@@ -307,10 +287,7 @@ export default function CoursePlayer() {
                   <span className="font-medium line-clamp-1">{unit.title}</span>
                 </div>
                 {currentUnit?.id === unit.id && (
-                  <motion.div
-                    layoutId="active-unit"
-                    className="absolute left-0 top-0 bottom-0 w-1 bg-gold"
-                  />
+                  <motion.div layoutId="active-unit" className="absolute left-0 top-0 bottom-0 w-1 bg-gold" />
                 )}
               </button>
             ))}

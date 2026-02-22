@@ -18,6 +18,7 @@ import Contact from './pages/Contact';
 import Courses from './pages/Courses';
 import InstructorProfile from './pages/InstructorProfile';
 import ProtectedRoute from './components/ProtectedRoute';
+import Marquee from './components/Marquee';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
@@ -44,6 +45,7 @@ export default function App() {
       <Router>
         <div className="min-h-screen bg-navy-dark text-white selection:bg-gold selection:text-navy-dark">
           <Navbar />
+          <Marquee />
           <AnimatePresence mode="wait">
             <Routes>
               <Route path="/" element={<Home />} />

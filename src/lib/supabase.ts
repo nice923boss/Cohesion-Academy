@@ -26,10 +26,10 @@ export interface Profile {
   id: string;
   full_name: string;
   role: UserRole;
-  subscription_start: string | null;
-  subscription_end: string | null;
   avatar_url?: string;
   bio?: string;
+  donate_url?: string;
+  donate_embed?: string;
   created_at: string;
 }
 
@@ -42,7 +42,6 @@ export interface Course {
   instructor_id: string;
   views: number;
   is_published: boolean;
-  is_free: boolean;
   created_at: string;
   instructor?: Profile;
 }
@@ -68,4 +67,25 @@ export interface Event {
   image_url: string;
   link_url: string;
   is_active: boolean;
+  start_date?: string;
+  end_date?: string;
+}
+
+export interface Article {
+  id: string;
+  title: string;
+  content: string;
+  thumbnail_url?: string;
+  author_id: string;
+  is_published: boolean;
+  created_at: string;
+  author?: Profile;
+}
+
+export interface HiddenInstructor {
+  id: string;
+  user_id: string;
+  instructor_id: string;
+  created_at: string;
+  instructor?: Profile;
 }

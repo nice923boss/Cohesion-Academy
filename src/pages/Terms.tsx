@@ -27,7 +27,10 @@ export default function Terms() {
             {content.sections?.map((section: any, idx: number) => (
               <section key={idx}>
                 <h2 className="text-white text-lg font-bold mb-4">{section.title}</h2>
-                <p className="whitespace-pre-wrap">{section.content}</p>
+                <div
+                  className="prose prose-invert prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: section.content }}
+                />
               </section>
             ))}
           </div>

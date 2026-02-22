@@ -6,15 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(dateString: string | null) {
-  if (!dateString) return "尚未開通";
+  if (!dateString) return "";
   return new Date(dateString).toLocaleDateString("zh-TW", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
-}
-
-export function isSubscriptionActive(endDate: string | null) {
-  if (!endDate) return false;
-  return new Date(endDate) > new Date();
 }

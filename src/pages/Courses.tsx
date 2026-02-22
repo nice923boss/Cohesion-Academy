@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { Play, Clock, Users, Search, Filter } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { Play, Users, Search } from 'lucide-react';
 
 export default function Courses() {
+  const { user } = useAuth();
   const [courses, setCourses] = useState<any[]>([]);
+  const [hiddenInstructorIds, setHiddenInstructorIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('全部');
@@ -15,27 +17,36 @@ export default function Courses() {
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [user]);
 
   async function fetchCourses() {
     setLoading(true);
     const { data, error } = await supabase
       .from('courses')
-      .select(`
-        *,
-        instructor:profiles(full_name)
-      `)
+      .select('*, instructor:profiles(full_name)')
       .eq('is_published', true)
       .order('created_at', { ascending: false });
 
     if (error) console.error(error);
     if (data) setCourses(data);
+
+    // Fetch hidden instructors for logged-in user
+    if (user) {
+      const { data: hidden } = await supabase
+        .from('hidden_instructors')
+        .select('instructor_id')
+        .eq('user_id', user.id);
+      if (hidden) setHiddenInstructorIds(hidden.map(h => h.instructor_id));
+    }
+
     setLoading(false);
   }
 
   const filteredCourses = courses.filter(course => {
+    // Filter out hidden instructors
+    if (hiddenInstructorIds.includes(course.instructor_id)) return false;
     const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchQuery.toLowerCase());
+                         course.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === '全部' || course.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -49,7 +60,7 @@ export default function Courses() {
         <div className="text-center space-y-4">
           <h1 className="text-4xl md:text-6xl font-bold gold-gradient tracking-tight">探索所有課程</h1>
           <p className="text-white/40 max-w-2xl mx-auto">
-            加入凝聚力學院，探索由頂尖導師打造的專業課程。我們不只教導知識，更引領您走向卓越。
+            凝聚力學院所有課程完全免費！由各領域專業講師共創分享，一起讓學習沒有門檻。
           </p>
         </div>
 
@@ -61,8 +72,8 @@ export default function Courses() {
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${
-                  selectedCategory === cat 
-                  ? 'bg-gold text-navy-dark' 
+                  selectedCategory === cat
+                  ? 'bg-gold text-navy-dark'
                   : 'bg-white/5 text-white/60 hover:bg-white/10'
                 }`}
               >
@@ -99,9 +110,9 @@ export default function Courses() {
               >
                 <Link to={`/course/${course.id}`} className="block glass rounded-[2.5rem] overflow-hidden border border-white/5 hover:border-gold/30 transition-all duration-500">
                   <div className="relative aspect-video overflow-hidden">
-                    <img 
-                      src={course.thumbnail_url || `https://picsum.photos/seed/${course.id}/800/450`} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                    <img
+                      src={course.thumbnail_url || `https://picsum.photos/seed/${course.id}/800/450`}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       alt={course.title}
                     />
                     <div className="absolute inset-0 bg-navy-dark/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -109,31 +120,23 @@ export default function Courses() {
                         <Play className="w-8 h-8 fill-current" />
                       </div>
                     </div>
-                    <div className="absolute top-4 left-4 flex flex-col gap-2">
+                    <div className="absolute top-4 left-4">
                       <span className="px-3 py-1 rounded-full bg-navy-dark/60 backdrop-blur-md text-[10px] font-bold tracking-widest uppercase text-gold border border-gold/20">
                         {course.category}
-                      </span>
-                      <span className={cn(
-                        "px-3 py-1 rounded-full backdrop-blur-md text-[10px] font-bold tracking-widest uppercase border",
-                        course.is_free 
-                          ? "bg-green-500/20 text-green-400 border-green-500/20" 
-                          : "bg-gold/20 text-gold border-gold/20"
-                      )}>
-                        {course.is_free ? '免費課程' : '付費課程'}
                       </span>
                     </div>
                   </div>
                   <div className="p-8">
                     <h3 className="text-xl font-bold mb-3 group-hover:text-gold transition-colors line-clamp-1">{course.title}</h3>
                     <p className="text-white/40 text-sm line-clamp-2 mb-6 leading-relaxed h-10">
-                      {course.description}
+                      {course.description?.replace(/<[^>]*>/g, '') || ''}
                     </p>
                     <div className="flex items-center justify-between pt-6 border-t border-white/5">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 rounded-full gold-bg-gradient flex items-center justify-center text-navy-dark text-[10px] font-bold">
                           {course.instructor?.full_name?.charAt(0) || 'I'}
                         </div>
-                        <span className="text-xs text-white/60">{course.instructor?.full_name || '頂尖導師'}</span>
+                        <span className="text-xs text-white/60">{course.instructor?.full_name || '講師'}</span>
                       </div>
                       <div className="flex items-center space-x-4 text-white/20 text-[10px] font-bold tracking-widest uppercase">
                         <span className="flex items-center space-x-1">
