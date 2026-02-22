@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'motion/react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Play, Users, Search } from 'lucide-react';
 
 export default function Courses() {
   const { user } = useAuth();
+  const location = useLocation();
   const [courses, setCourses] = useState<any[]>([]);
   const [hiddenInstructorIds, setHiddenInstructorIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +18,7 @@ export default function Courses() {
 
   useEffect(() => {
     fetchCourses();
-  }, [user]);
+  }, [user, location.key]);
 
   async function fetchCourses() {
     setLoading(true);

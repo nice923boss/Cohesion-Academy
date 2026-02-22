@@ -5,10 +5,11 @@ import HeroSlider from '../components/HeroSlider';
 import CourseCard from '../components/CourseCard';
 import { motion } from 'motion/react';
 import { Sparkles, ArrowRight, Users, BookOpen, Heart, FileText } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function Home() {
   const { user } = useAuth();
+  const location = useLocation();
   const [hotCourses, setHotCourses] = useState<Course[]>([]);
   const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -64,7 +65,7 @@ export default function Home() {
       setLoading(false);
     }
     fetchData();
-  }, [user]);
+  }, [user, location.key]);
 
   return (
     <div className="pb-20">

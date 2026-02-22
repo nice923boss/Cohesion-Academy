@@ -145,7 +145,10 @@ export default function CourseManagement() {
   }
 
   async function togglePublish(id: string, currentStatus: boolean) {
-    await supabase.from('courses').update({ is_published: !currentStatus }).eq('id', id);
+    const { error } = await supabase.from('courses').update({ is_published: !currentStatus }).eq('id', id);
+    if (error) {
+      alert('發佈狀態更新失敗：' + error.message);
+    }
     fetchCourses();
   }
 
