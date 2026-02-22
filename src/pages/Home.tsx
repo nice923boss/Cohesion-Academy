@@ -184,8 +184,8 @@ export default function Home() {
       <section className="mt-32 px-4">
         <div className="max-w-5xl mx-auto glass rounded-[3rem] p-12 md:p-20 text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full gold-bg-gradient opacity-5 -z-10" />
-          <h2 className="text-4xl md:text-6xl font-bold mb-8 tracking-tight">
-            以 <span className="gold-gradient italic">共創與分享</span> 的精神
+          <h2 className="text-4xl md:text-6xl font-bold mb-8 tracking-tight pr-2">
+            以 <span className="gold-gradient italic pr-1">共創與分享</span> 的精神
           </h2>
           <p className="text-white/60 text-lg mb-12 max-w-2xl mx-auto leading-relaxed">
             凝聚力學院是一個完全免費的知識共享平台。我們相信知識的力量來自分享，每位講師都能在這裡免費上架課程，透過 Donate 機制獲得支持。一起讓學習沒有門檻。
@@ -214,12 +214,14 @@ export default function Home() {
           <p className="text-white/40 mb-8 max-w-xl mx-auto">
             在凝聚力學院免費上架您的課程，讓更多人受益於您的專業知識。學員可以透過 Donate 連結自由贊助支持您。
           </p>
-          <Link
-            to="/login"
+          <a
+            href="https://line.me/ti/p/3YAya5KQYr"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-block px-8 py-3 rounded-full border border-white/20 text-white/60 font-bold text-sm hover:border-gold hover:text-gold transition-all"
           >
             成為講師 →
-          </Link>
+          </a>
         </div>
       </section>
     </div>

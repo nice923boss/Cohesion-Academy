@@ -158,6 +158,17 @@ export default function Dashboard() {
                   </p>
                 )}
               </form>
+              <div className="mt-6 pt-6 border-t border-white/5 text-center">
+                <p className="text-white/30 text-xs mb-3">還沒有邀請碼？</p>
+                <a
+                  href="https://line.me/ti/p/3YAya5KQYr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-[#06C755]/10 border border-[#06C755]/20 text-[#06C755] hover:bg-[#06C755] hover:text-white transition-all text-sm font-bold"
+                >
+                  <span>聯繫管理員申請成為講師</span>
+                </a>
+              </div>
             </motion.div>
           )}
         </div>
