@@ -56,15 +56,31 @@ export default function Home() {
           .eq('is_published', true)
       ]);
 
-      // Log errors for debugging
-      if (hotRes.error) console.error('Hot courses fetch error:', hotRes.error);
-      if (allRes.error) console.error('All courses fetch error:', allRes.error);
-      if (articleRes.error) console.error('Articles fetch error:', articleRes.error);
+      // Fallback: if JOIN queries fail (FK constraint missing), retry without JOIN
+      let hotData = hotRes.data;
+      let allData = allRes.data;
+      let articleData = articleRes.data;
+
+      if (hotRes.error) {
+        console.warn('Hot courses join failed, retrying without join:', hotRes.error.message);
+        const { data } = await supabase.from('courses').select('*').eq('is_published', true).order('views', { ascending: false }).limit(4);
+        hotData = data;
+      }
+      if (allRes.error) {
+        console.warn('All courses join failed, retrying without join:', allRes.error.message);
+        const { data } = await supabase.from('courses').select('*').eq('is_published', true).order('created_at', { ascending: false }).limit(8);
+        allData = data;
+      }
+      if (articleRes.error) {
+        console.warn('Articles join failed, retrying without join:', articleRes.error.message);
+        const { data } = await supabase.from('articles').select('*').eq('is_published', true).order('created_at', { ascending: false }).limit(3);
+        articleData = data;
+      }
 
       const filterHidden = (courses: Course[]) => courses.filter(c => !hiddenInstructorIds.includes(c.instructor_id));
-      if (hotRes.data) setHotCourses(filterHidden(hotRes.data));
-      if (allRes.data) setAllCourses(filterHidden(allRes.data));
-      if (articleRes.data) setArticles(articleRes.data);
+      if (hotData) setHotCourses(filterHidden(hotData));
+      if (allData) setAllCourses(filterHidden(allData));
+      if (articleData) setArticles(articleData);
       if (userCountRes.count !== null) setUserCount(userCountRes.count);
       if (courseCountRes.count !== null) setCourseCount(courseCountRes.count);
       setLoading(false);

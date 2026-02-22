@@ -1,8 +1,55 @@
 -- ============================================================
--- 凝聚力學院 — 修復 courses 資料表 RLS 政策
+-- 凝聚力學院 — 修復 courses 資料表 RLS 政策 + 外鍵約束
 -- 用途：解決「課程發佈後無法在首頁/所有課程顯示」的問題
 -- 使用方式：在 Supabase Dashboard → SQL Editor 中貼上並執行
 -- ============================================================
+
+-- ************************************************************
+-- A. 修復外鍵約束（讓 PostgREST JOIN 查詢正常運作）
+-- ************************************************************
+
+-- 如果 courses.instructor_id 缺少外鍵，補上
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_type = 'FOREIGN KEY'
+      AND table_name = 'courses'
+      AND constraint_name LIKE '%instructor_id%'
+  ) THEN
+    ALTER TABLE courses
+      ADD CONSTRAINT courses_instructor_id_fkey
+      FOREIGN KEY (instructor_id) REFERENCES profiles(id) ON DELETE SET NULL;
+    RAISE NOTICE 'Added FK: courses.instructor_id -> profiles.id';
+  ELSE
+    RAISE NOTICE 'FK already exists for courses.instructor_id';
+  END IF;
+END $$;
+
+-- 如果 articles.author_id 缺少外鍵，補上
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_type = 'FOREIGN KEY'
+      AND table_name = 'articles'
+      AND constraint_name LIKE '%author_id%'
+  ) THEN
+    ALTER TABLE articles
+      ADD CONSTRAINT articles_author_id_fkey
+      FOREIGN KEY (author_id) REFERENCES profiles(id) ON DELETE SET NULL;
+    RAISE NOTICE 'Added FK: articles.author_id -> profiles.id';
+  ELSE
+    RAISE NOTICE 'FK already exists for articles.author_id';
+  END IF;
+END $$;
+
+-- 通知 PostgREST 重新載入 schema cache
+NOTIFY pgrst, 'reload schema';
+
+-- ************************************************************
+-- B. 修復 RLS 政策
+-- ************************************************************
 
 -- 步驟 1：刪除所有 courses 表上的舊 RLS 政策
 DO $$
@@ -48,16 +95,23 @@ CREATE POLICY "Instructors can delete own courses."
     OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
--- ============================================================
--- 步驟 4：驗證 — 查詢目前的課程和發佈狀態
--- ============================================================
+-- ************************************************************
+-- C. 驗證結果
+-- ************************************************************
+
+-- 查看外鍵約束
+SELECT conname AS constraint_name, conrelid::regclass AS table_name
+FROM pg_constraint
+WHERE contype = 'f' AND conrelid IN ('courses'::regclass, 'articles'::regclass);
+
+-- 查看課程發佈狀態
 SELECT id, title, is_published, instructor_id, created_at
 FROM courses
 ORDER BY created_at DESC;
 
 -- ============================================================
 -- 完成！執行後請確認：
--- 1. 上方查詢結果中，已發佈的課程 is_published 為 true
--- 2. 回到網站首頁刷新，確認課程出現
--- 3. 如果課程的 is_published 仍為 false，請到「課程管理」頁面重新發佈
+-- 1. 上方顯示外鍵約束已存在
+-- 2. 課程的 is_published 為 true
+-- 3. 回到網站首頁刷新（Ctrl+Shift+R），確認課程出現
 -- ============================================================

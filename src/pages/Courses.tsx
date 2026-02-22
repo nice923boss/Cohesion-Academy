@@ -22,17 +22,29 @@ export default function Courses() {
 
   async function fetchCourses() {
     setLoading(true);
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('courses')
       .select('*, instructor:profiles(full_name)')
       .eq('is_published', true)
       .order('created_at', { ascending: false });
 
+    // Fallback: if JOIN fails (FK constraint missing), retry without JOIN
+    if (error) {
+      console.warn('Courses join failed, retrying without join:', error.message);
+      const retry = await supabase
+        .from('courses')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
+      data = retry.data;
+      error = retry.error;
+    }
+
     if (error) console.error('Courses fetch error:', error);
     if (data) {
       setCourses(data);
     } else {
-      console.warn('Courses fetch returned no data. Possible RLS issue.');
+      console.warn('Courses fetch returned no data.');
     }
 
     // Fetch hidden instructors for logged-in user

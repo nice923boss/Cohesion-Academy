@@ -25,11 +25,23 @@ export default function CoursePlayer() {
 
   useEffect(() => {
     async function fetchCourseData() {
-      const { data: courseData } = await supabase
+      let { data: courseData, error: courseError } = await supabase
         .from('courses')
         .select('*, instructor:profiles(full_name, donate_url, donate_embed)')
         .eq('id', id)
         .single();
+
+      // Fallback: if JOIN fails (FK constraint missing), retry without JOIN
+      if (courseError && !courseData) {
+        console.warn('Course join failed, retrying without join:', courseError.message);
+        const retry = await supabase.from('courses').select('*').eq('id', id).single();
+        courseData = retry.data;
+        // Fetch instructor profile separately
+        if (courseData?.instructor_id) {
+          const { data: profile } = await supabase.from('profiles').select('full_name, donate_url, donate_embed').eq('id', courseData.instructor_id).single();
+          if (profile) courseData.instructor = profile;
+        }
+      }
 
       const { data: unitsData } = await supabase
         .from('units')

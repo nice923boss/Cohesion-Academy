@@ -12,11 +12,23 @@ export default function ArticlePage() {
   useEffect(() => {
     async function fetchArticle() {
       setLoading(true);
-      const { data } = await supabase
+      let { data, error } = await supabase
         .from('articles')
         .select('*, author:profiles(full_name, avatar_url)')
         .eq('id', id)
         .single();
+
+      // Fallback: if JOIN fails (FK constraint missing), retry without JOIN
+      if (error && !data) {
+        console.warn('Article join failed, retrying without join:', error.message);
+        const retry = await supabase.from('articles').select('*').eq('id', id).single();
+        data = retry.data;
+        if (data?.author_id) {
+          const { data: authorProfile } = await supabase.from('profiles').select('full_name, avatar_url').eq('id', data.author_id).single();
+          if (authorProfile) data.author = authorProfile;
+        }
+      }
+
       if (data) setArticle(data);
       setLoading(false);
     }
