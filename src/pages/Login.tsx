@@ -27,7 +27,7 @@ export default function Login() {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: window.location.origin + '/Cohesion-Academy/',
             data: {
               full_name: fullName,
             },
