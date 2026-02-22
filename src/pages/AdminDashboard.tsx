@@ -318,13 +318,33 @@ export default function AdminDashboard() {
 
           {/* User Permissions - 使用者權限管理 */}
           <section className="glass rounded-3xl p-8 space-y-6">
-            <h2 className="text-xl font-bold flex items-center space-x-2"><ShieldCheck className="w-5 h-5 text-gold" /><span>使用者權限管理</span></h2>
-            <p className="text-white/40 text-sm">共 {users.length} 位會員 — 可在此調整使用者角色（學員 / 講師 / 管理員）</p>
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-xl font-bold flex items-center space-x-2"><ShieldCheck className="w-5 h-5 text-gold" /><span>使用者權限管理</span></h2>
+                <p className="text-white/40 text-sm mt-1">
+                  共 {users.length} 位會員 — 可在此調整使用者角色（學員 / 講師 / 管理員）
+                  {unverifiedCount > 0 && (
+                    <span className="text-orange-400 ml-2">（{unverifiedCount} 位待驗證）</span>
+                  )}
+                </p>
+              </div>
+              {unverifiedCount > 0 && (
+                <button
+                  onClick={handleBatchVerifyUsers}
+                  disabled={batchVerifying}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all text-sm font-bold disabled:opacity-50 flex-shrink-0"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>{batchVerifying ? '驗證中...' : '批次驗證全部'}</span>
+                </button>
+              )}
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead><tr className="text-white/40 border-b border-white/5">
                   <th className="pb-4 font-medium">姓名</th>
                   <th className="pb-4 font-medium">角色</th>
+                  <th className="pb-4 font-medium">驗證狀態</th>
                   <th className="pb-4 font-medium">註冊日期</th>
                 </tr></thead>
                 <tbody>
@@ -338,6 +358,38 @@ export default function AdminDashboard() {
                           <option value="instructor">講師</option>
                           <option value="admin">管理員</option>
                         </select>
+                      </td>
+                      <td className="py-3">
+                        {verificationStatus[u.id] !== undefined ? (
+                          verificationStatus[u.id] ? (
+                            <span className="flex items-center space-x-1 text-green-400">
+                              <CheckCircle className="w-4 h-4" />
+                              <span className="text-xs">已驗證</span>
+                            </span>
+                          ) : (
+                            <div className="flex items-center space-x-2">
+                              <span className="flex items-center space-x-1 text-orange-400">
+                                <XCircle className="w-4 h-4" />
+                                <span className="text-xs">待驗證</span>
+                              </span>
+                              <button
+                                onClick={() => handleVerifyUser(u.id, u.full_name)}
+                                disabled={verifyingUserId === u.id}
+                                className="px-2 py-1 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all text-xs font-bold disabled:opacity-50 flex items-center space-x-1"
+                                title="代驗證 Email"
+                              >
+                                {verifyingUserId === u.id ? (
+                                  <span className="w-3 h-3 block animate-spin rounded-full border-2 border-green-400 border-t-transparent" />
+                                ) : (
+                                  <ShieldCheck className="w-3 h-3" />
+                                )}
+                                <span>代驗證</span>
+                              </button>
+                            </div>
+                          )
+                        ) : (
+                          <span className="text-xs text-white/20">—</span>
+                        )}
                       </td>
                       <td className="py-3 text-white/40">{formatDate(u.created_at)}</td>
                     </tr>
