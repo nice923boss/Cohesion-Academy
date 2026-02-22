@@ -17,6 +17,7 @@ import Terms from './pages/Terms';
 import Contact from './pages/Contact';
 import Courses from './pages/Courses';
 import InstructorProfile from './pages/InstructorProfile';
+import ArticlePage from './pages/ArticlePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Marquee from './components/Marquee';
 import { motion, AnimatePresence } from 'motion/react';
@@ -80,6 +81,7 @@ export default function App() {
               <Route path="/course/:id" element={<CoursePlayer />} />
               <Route path="/instructor/:id" element={<InstructorProfile />} />
               <Route path="/courses" element={<Courses />} />
+              <Route path="/article/:id" element={<ArticlePage />} />
             </Routes>
           </AnimatePresence>
           

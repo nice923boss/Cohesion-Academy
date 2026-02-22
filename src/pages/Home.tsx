@@ -130,32 +130,33 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {articles.map((article) => (
-                <motion.div
-                  key={article.id}
-                  whileHover={{ y: -5 }}
-                  className="glass rounded-2xl overflow-hidden group"
-                >
-                  {article.thumbnail_url && (
-                    <div className="aspect-video overflow-hidden">
-                      <img
-                        src={article.thumbnail_url}
-                        alt={article.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        referrerPolicy="no-referrer"
-                      />
+                <Link key={article.id} to={`/article/${article.id}`} className="block">
+                  <motion.div
+                    whileHover={{ y: -5 }}
+                    className="glass rounded-2xl overflow-hidden group cursor-pointer h-full"
+                  >
+                    {article.thumbnail_url && (
+                      <div className="aspect-video overflow-hidden">
+                        <img
+                          src={article.thumbnail_url}
+                          alt={article.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    )}
+                    <div className="p-6">
+                      <h3 className="text-lg font-bold mb-2 group-hover:text-gold transition-colors line-clamp-2">
+                        {article.title}
+                      </h3>
+                      <div className="text-white/40 text-sm line-clamp-3 mb-4" dangerouslySetInnerHTML={{ __html: article.content }} />
+                      <div className="flex items-center justify-between text-xs text-white/30">
+                        <span>{article.author?.full_name || '凝聚力學院'}</span>
+                        <span>{new Date(article.created_at).toLocaleDateString('zh-TW')}</span>
+                      </div>
                     </div>
-                  )}
-                  <div className="p-6">
-                    <h3 className="text-lg font-bold mb-2 group-hover:text-gold transition-colors line-clamp-2">
-                      {article.title}
-                    </h3>
-                    <div className="text-white/40 text-sm line-clamp-3 mb-4" dangerouslySetInnerHTML={{ __html: article.content }} />
-                    <div className="flex items-center justify-between text-xs text-white/30">
-                      <span>{article.author?.full_name || '凝聚力學院'}</span>
-                      <span>{new Date(article.created_at).toLocaleDateString('zh-TW')}</span>
-                    </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
+                </Link>
               ))}
             </div>
           </section>

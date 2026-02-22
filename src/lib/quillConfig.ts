@@ -1,10 +1,8 @@
 /**
  * Shared React Quill configuration for WordPress-like rich text editing.
  * Includes heading sizes, font color, background color, alignment, etc.
- * 圖片僅允許透過 URL 插入，禁止拖曳/貼上 Base64 圖片以避免資料庫膨脹。
+ * 圖片功能已完全移除，避免 Base64 圖片膨脹資料庫。
  */
-
-import type { default as ReactQuillType } from 'react-quill-new';
 
 export const quillModules = {
   toolbar: [
@@ -14,7 +12,7 @@ export const quillModules = {
     [{ color: [] }, { background: [] }],
     [{ list: 'ordered' }, { list: 'bullet' }],
     [{ align: [] }],
-    ['link', 'image'],
+    ['link'],
     ['clean'],
   ],
   clipboard: {
@@ -35,11 +33,10 @@ export const quillFormats = [
   'bullet',
   'align',
   'link',
-  'image',
 ];
 
 /**
- * 攔截 Base64 圖片貼上/拖曳，只允許 URL 圖片。
+ * 攔截圖片拖曳與貼上，完全禁止在富文本編輯器中插入圖片。
  * 使用方式：在 ReactQuill 的 ref callback 中呼叫此函式。
  *
  * 範例：
@@ -49,16 +46,17 @@ export function blockBase64Images(quillRef: any) {
   const editor = quillRef?.getEditor?.();
   if (!editor) return;
 
-  // 監聽文字變更，移除 Base64 圖片
+  // 阻擋拖曳圖片
   editor.root.addEventListener('drop', (e: DragEvent) => {
     const files = e.dataTransfer?.files;
     if (files && files.length > 0) {
       e.preventDefault();
       e.stopPropagation();
-      alert('請使用工具列的圖片按鈕，以 URL 方式插入圖片。不支援直接拖曳圖片。');
+      alert('富文本編輯器不支援插入圖片。如需顯示圖片，請使用獨立的圖片 URL 欄位。');
     }
   });
 
+  // 阻擋貼上圖片
   editor.root.addEventListener('paste', (e: ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -66,7 +64,7 @@ export function blockBase64Images(quillRef: any) {
       if (items[i].type.indexOf('image') !== -1) {
         e.preventDefault();
         e.stopPropagation();
-        alert('請使用工具列的圖片按鈕，以 URL 方式插入圖片。不支援直接貼上圖片。');
+        alert('富文本編輯器不支援插入圖片。如需顯示圖片，請使用獨立的圖片 URL 欄位。');
         return;
       }
     }
