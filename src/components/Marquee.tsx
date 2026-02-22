@@ -1,19 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Megaphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
+
+const MARQUEE_STORAGE_KEY = 'cohesion_marquee_dismissed';
+
+interface MarqueeDismissState {
+  dismissedDate: string;   // YYYY-MM-DD format
+  updatedAt: string;       // site_settings.updated_at value
+}
 
 export default function Marquee() {
   const [visible, setVisible] = useState(false);
   const [messages, setMessages] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [dbUpdatedAt, setDbUpdatedAt] = useState<string>('');
+  const [shouldShow, setShouldShow] = useState(true);
 
-  // Fetch marquee messages from DB
+  // Fetch marquee messages from DB and check dismissal state
   useEffect(() => {
     async function fetchMessages() {
       const { data } = await supabase
         .from('site_settings')
-        .select('content')
+        .select('content, updated_at')
         .eq('key', 'marquee_messages')
         .single();
 
@@ -21,13 +30,28 @@ export default function Marquee() {
         const now = new Date();
         const active = data.content.messages.filter((m: any) => {
           if (!m.enabled || !m.text?.trim()) return false;
-          // Filter by date range if set
           if (m.start_date && new Date(m.start_date) > now) return false;
           if (m.end_date && new Date(m.end_date) < now) return false;
           return true;
         });
+
         if (active.length > 0) {
           setMessages(active.map((m: any) => m.text));
+          const updatedAt = data.updated_at || '';
+          setDbUpdatedAt(updatedAt);
+
+          // Check localStorage to see if user already dismissed today
+          const dismissed = getDismissState();
+          if (dismissed) {
+            const today = getTodayStr();
+            // If dismissed today AND admin hasn't updated content → don't show
+            if (dismissed.dismissedDate === today && dismissed.updatedAt === updatedAt) {
+              setShouldShow(false);
+              return;
+            }
+          }
+          // Otherwise allow showing
+          setShouldShow(true);
         }
       }
 
@@ -36,29 +60,18 @@ export default function Marquee() {
         setMessages([
           '首頁活動輪播現正開放廣告合作！想讓更多人看見您的品牌嗎？歡迎聯繫網站管理員洽談廣告投放事宜。'
         ]);
+        setShouldShow(true);
       }
     }
     fetchMessages();
   }, []);
 
-  // Show after 15 seconds
+  // Show after 15 seconds (only if shouldShow is true)
   useEffect(() => {
-    if (messages.length === 0) return;
+    if (messages.length === 0 || !shouldShow) return;
     const showTimer = setTimeout(() => setVisible(true), 15000);
     return () => clearTimeout(showTimer);
-  }, [messages]);
-
-  // Reappear every 120 seconds after dismissed
-  useEffect(() => {
-    if (!visible && messages.length > 0) {
-      const reappear = setTimeout(() => {
-        // Rotate to next message when reappearing
-        setCurrentIndex(prev => (prev + 1) % messages.length);
-        setVisible(true);
-      }, 120000);
-      return () => clearTimeout(reappear);
-    }
-  }, [visible, messages]);
+  }, [messages, shouldShow]);
 
   // Auto-rotate messages every 30 seconds while visible
   useEffect(() => {
@@ -68,6 +81,16 @@ export default function Marquee() {
     }, 30000);
     return () => clearInterval(rotate);
   }, [visible, messages.length]);
+
+  function handleDismiss() {
+    setVisible(false);
+    setShouldShow(false);
+    // Save dismissal state to localStorage
+    saveDismissState({
+      dismissedDate: getTodayStr(),
+      updatedAt: dbUpdatedAt,
+    });
+  }
 
   if (messages.length === 0) return null;
 
@@ -105,7 +128,7 @@ export default function Marquee() {
                 </span>
               )}
               <button
-                onClick={() => setVisible(false)}
+                onClick={handleDismiss}
                 className="ml-2 p-1 rounded-full hover:bg-navy-dark/20 transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -116,4 +139,29 @@ export default function Marquee() {
       )}
     </AnimatePresence>
   );
+}
+
+// --- localStorage helpers ---
+
+function getTodayStr(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function getDismissState(): MarqueeDismissState | null {
+  try {
+    const raw = localStorage.getItem(MARQUEE_STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveDismissState(state: MarqueeDismissState) {
+  try {
+    localStorage.setItem(MARQUEE_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // localStorage might be full or disabled
+  }
 }

@@ -145,9 +145,16 @@ export default function CourseManagement() {
   }
 
   async function togglePublish(id: string, currentStatus: boolean) {
-    const { error } = await supabase.from('courses').update({ is_published: !currentStatus }).eq('id', id);
+    const { data, error } = await supabase
+      .from('courses')
+      .update({ is_published: !currentStatus })
+      .eq('id', id)
+      .select();
+
     if (error) {
       alert('發佈狀態更新失敗：' + error.message);
+    } else if (!data || data.length === 0) {
+      alert('發佈狀態更新失敗：權限不足或課程不存在。\n\n可能原因：\n1. 請確認您的帳號角色為 instructor 或 admin\n2. 請確認 Supabase 中 courses 資料表的 RLS 政策已正確設定\n\n請到 Supabase Dashboard → SQL Editor 執行 RLS 修復腳本。');
     }
     fetchCourses();
   }

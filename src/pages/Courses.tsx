@@ -28,8 +28,12 @@ export default function Courses() {
       .eq('is_published', true)
       .order('created_at', { ascending: false });
 
-    if (error) console.error(error);
-    if (data) setCourses(data);
+    if (error) console.error('Courses fetch error:', error);
+    if (data) {
+      setCourses(data);
+    } else {
+      console.warn('Courses fetch returned no data. Possible RLS issue.');
+    }
 
     // Fetch hidden instructors for logged-in user
     if (user) {

@@ -56,6 +56,11 @@ export default function Home() {
           .eq('is_published', true)
       ]);
 
+      // Log errors for debugging
+      if (hotRes.error) console.error('Hot courses fetch error:', hotRes.error);
+      if (allRes.error) console.error('All courses fetch error:', allRes.error);
+      if (articleRes.error) console.error('Articles fetch error:', articleRes.error);
+
       const filterHidden = (courses: Course[]) => courses.filter(c => !hiddenInstructorIds.includes(c.instructor_id));
       if (hotRes.data) setHotCourses(filterHidden(hotRes.data));
       if (allRes.data) setAllCourses(filterHidden(allRes.data));
