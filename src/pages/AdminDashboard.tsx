@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { motion } from 'motion/react';
-import { Plus, Trash2, Edit, Save, X, Image as ImageIcon, Users, Ticket, Calendar, MessageSquare, Globe, Mail as MailIcon, MapPin, MessageCircle, ShieldCheck, FileText, ExternalLink, EyeOff, KeyRound, Search, ChevronDown, ChevronUp, Megaphone, CheckCircle, XCircle, UserCheck } from 'lucide-react';
+import { Plus, Trash2, Edit, Save, X, Image as ImageIcon, Users, Ticket, Calendar, MessageSquare, Globe, Mail as MailIcon, MapPin, MessageCircle, ShieldCheck, FileText, ExternalLink, EyeOff, KeyRound, Search, ChevronDown, ChevronUp, Megaphone, CheckCircle, XCircle, UserCheck, ToggleLeft, ToggleRight } from 'lucide-react';
 import { cn, formatDate } from '../lib/utils';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -34,6 +34,9 @@ export default function AdminDashboard() {
   const [verificationStatus, setVerificationStatus] = useState<Record<string, string | null>>({});
   const [verifyingUserId, setVerifyingUserId] = useState<string | null>(null);
   const [batchVerifying, setBatchVerifying] = useState(false);
+
+  // Skip email verification toggle
+  const [skipVerification, setSkipVerification] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -68,6 +71,10 @@ export default function AdminDashboard() {
             ...(settingsMap.marquee_messages || {})
           }
         });
+        // Load skip email verification setting
+        if (settingsMap.skip_email_verification) {
+          setSkipVerification(settingsMap.skip_email_verification.enabled === true);
+        }
       }
       // Fetch email verification status from auth.users
       await fetchVerificationStatus();
@@ -172,6 +179,22 @@ export default function AdminDashboard() {
       else { alert(`批次驗證完成！共驗證 ${data} 位會員`); await fetchVerificationStatus(); }
     } catch (err: any) { alert('批次驗證失敗：' + err.message); }
     finally { setBatchVerifying(false); }
+  }
+
+  // Skip email verification toggle handler
+  async function handleToggleSkipVerification() {
+    const newValue = !skipVerification;
+    const { error } = await supabase.from('site_settings').upsert({
+      key: 'skip_email_verification',
+      content: { enabled: newValue },
+      updated_at: new Date().toISOString()
+    });
+    if (error) {
+      alert('更新失敗：' + error.message);
+    } else {
+      setSkipVerification(newValue);
+      alert(newValue ? '已開啟：新會員註冊後將自動通過驗證，不需要驗證信。' : '已關閉：新會員註冊後需要透過驗證信或管理員代驗證。');
+    }
   }
 
   // Code handlers
@@ -315,6 +338,36 @@ export default function AdminDashboard() {
               </div>
             </section>
           </div>
+
+          {/* Skip Email Verification Toggle */}
+          <section className="glass rounded-3xl p-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-2xl bg-white/5">
+                  <MailIcon className="w-5 h-5 text-gold" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">註冊免驗證模式</h2>
+                  <p className="text-white/40 text-xs mt-0.5">
+                    {skipVerification
+                      ? '目前已開啟 — 新會員註冊後自動通過驗證，不需要驗證信'
+                      : '目前已關閉 — 新會員註冊後需要驗證信或管理員代驗證'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleToggleSkipVerification}
+                className="flex-shrink-0 transition-all hover:scale-110"
+                title={skipVerification ? '點擊關閉' : '點擊開啟'}
+              >
+                {skipVerification ? (
+                  <ToggleRight className="w-12 h-12 text-green-400" />
+                ) : (
+                  <ToggleLeft className="w-12 h-12 text-white/20" />
+                )}
+              </button>
+            </div>
+          </section>
 
           {/* User Permissions - 使用者權限管理 */}
           <section className="glass rounded-3xl p-8 space-y-6">

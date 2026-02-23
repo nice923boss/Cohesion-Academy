@@ -34,13 +34,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Listen for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
       } else {
         setProfile(null);
         setLoading(false);
+      }
+
+      // Redirect to reset password page on password recovery
+      if (event === 'PASSWORD_RECOVERY') {
+        window.location.hash = '#/reset-password';
       }
     });
 
